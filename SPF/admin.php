@@ -1,19 +1,27 @@
 <?php
+
 require("session_handling.php");
+
 ?>
 
 <!DOCTYPE html>
-<html lang="utf-8">
+<html lang="utf=8">
+
+
 
 <head>
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="astyle.css">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="astyle.css">
 </head>
 <body>
 
+
 <nav>
-    <img src="images/logo.png" width="190" height="90">
+		<img src ="images/logo.png" width="190" height="90">
 </nav>
+
+
+
 
 <div class="dashboard">
     <h1>Admin Dashboard</h1>

@@ -4,35 +4,67 @@
     include("Connectdb.php");
 
     // initialising $query
+    // $query = "";
+
+    // // if the user uses the search filter
+    // if (isset($_POST['search-query'])) {
+    //     // cleaning the input from whitespace & special characters
+    //     $userSearch = $_POST['search-query'];
+    //     $userSearch = trim($userSearch);
+    //     $userSearch = addslashes($userSearch);  // not secure enough, only escapes a limited amount of characters
+
+    //     // database query
+    //     $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product WHERE ";
+    //     $query .= "pdName LIKE '%$userSearch%'";
+    // }
+    // else {
+    //     // display all items if search filter is empty
+    //     $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product";
+    // }
+
+    // // retrieving query result
+    // $result = mysqli_query($con, $query);
+
+    // //error message if result from query not found
+    // if (!$result) {
+    //     die('SQL query error: ' . mysqli_error($con));
+    // }
+
+    // NEW SECURE CODE
+    // initialising $query
     $query = "";
 
     // if the user uses the search filter
     if (isset($_POST['search-query'])) {
         // cleaning the input from whitespace & special characters
-        $userSearch = $_POST['search-query'];
-        $userSearch = trim($userSearch);
-        $userSearch = addslashes($userSearch);
+        $rawUserSearchTrim = trim($_POST['search-query']);
+        $sanitisedUserSearch = filter_var($rawUserSearchTrim, FILTER_SANITIZE_STRING);
+        $userSearch = "%$sanitisedUserSearch%";
+        
 
         // database query
         $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product WHERE ";
-        $query .= "pdName LIKE '%$userSearch%'";
+        $query .= "pdName LIKE ?";
+
+        $stmt = $con->prepare($query);
+        $stmt->bind_param("s", $userSearch);
     }
     else {
         // display all items if search filter is empty
         $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product";
+        
+        $stmt = $con->prepare($query);
     }
 
-    // retrieving query result
-    $result = mysqli_query($con, $query);
-
-    //error message if result from query not found
-    if (!$result) {
-        die('SQL query error: ' . mysqli_error($con));
+    // if statement could not execute properly
+    if (!$stmt->execute()) {
+        error_log("Admin Products Page | Could not fetch results", $stmt->errno);
     }
+    $result = $stmt->get_result();
 
 
     // closing database connection
-    $con->close();
+    $stmt->close();
 
 ?>
 
@@ -74,7 +106,46 @@
             <table>
                 <!-- automatically generating the table rows along with the associated product ID -->
                 <?php
-                    if (mysqli_num_rows($result) > 0) {
+                    // if (mysqli_num_rows($result) > 0) {
+
+                    //     echo "<tr>";
+                    //     echo "    <th></th>";
+                    //     echo "    <th>Product Name</th>";
+                    //     echo "    <th>Price</th>";
+                    //     echo "    <th>Size</th>";
+                    //     echo "    <th>Stock</th>";
+                    //     echo "    <th></th>";
+                    //     echo "</tr>";
+
+                    //     while ($tbrow = mysqli_fetch_assoc($result)) {
+                    //         $pdID = $tbrow['pdID'];
+                    //         $pdImg = $tbrow['pdImage'];
+                    //         $pdName = $tbrow['pdName'];
+                    //         $pdPrice = $tbrow['pdPrice'];
+                    //         $pdSize = $tbrow['pdSize'];
+                    //         $pdStockCount = $tbrow['pdStockCount'];
+
+                    //         echo "<tr>";
+                    //         echo "    <td><img src='$pdImg' width='150px' height='150px'></td>";
+                    //         echo "    <td><p>$pdName</p></td>";
+                    //         echo "    <td><p>RM$pdPrice</p></td>";
+                    //         echo "    <td><p>$pdSize</p></td>";
+                    //         echo "    <td><p>$pdStockCount</p></td>";
+                    //         echo "    <td>";
+                    //         echo "        <a href='aeditproduct.php?id=$pdID'>";
+                    //         echo "            <button class='delete'>Edit</button>";
+                    //         echo "        </a>";
+                    //         echo "        <button class='delete-btn delete' value='$pdID'>Delete</button>";
+                    //         echo "    </td>";
+                    //         echo "</tr>";
+                    //     }
+                    // }
+                    // else {
+                    //     echo "<p style='margin-top: 24%; font-size: 1.5rem;'>Couldn't find the product</p>";
+                    // }
+
+                    // NEW SECURE CODE
+                    if ($result->num_rows > 0) {
 
                         echo "<tr>";
                         echo "    <th></th>";
@@ -85,7 +156,7 @@
                         echo "    <th></th>";
                         echo "</tr>";
 
-                        while ($tbrow = mysqli_fetch_assoc($result)) {
+                        while ($tbrow = $result->fetch_assoc()) {
                             $pdID = $tbrow['pdID'];
                             $pdImg = $tbrow['pdImage'];
                             $pdName = $tbrow['pdName'];
@@ -94,16 +165,16 @@
                             $pdStockCount = $tbrow['pdStockCount'];
 
                             echo "<tr>";
-                            echo "    <td><img src='$pdImg' width='150px' height='150px'></td>";
-                            echo "    <td><p>$pdName</p></td>";
-                            echo "    <td><p>RM$pdPrice</p></td>";
-                            echo "    <td><p>$pdSize</p></td>";
-                            echo "    <td><p>$pdStockCount</p></td>";
+                            echo "    <td><img src='" .htmlspecialchars($pdImg). "' width='150px' height='150px'></td>";
+                            echo "    <td><p>" .htmlspecialchars_decode(htmlspecialchars($pdName, ENT_NOQUOTES, 'UTF-8'), ENT_QUOTES). "</p></td>";
+                            echo "    <td><p>RM" .htmlspecialchars($pdPrice). "</p></td>";
+                            echo "    <td><p>" .htmlspecialchars($pdSize). "</p></td>";
+                            echo "    <td><p>" .htmlspecialchars($pdStockCount). "</p></td>";
                             echo "    <td>";
-                            echo "        <a href='aeditproduct.php?id=$pdID'>";
+                            echo "        <a href='aeditproduct.php?id=" .(int)$pdID. "'>";
                             echo "            <button class='delete'>Edit</button>";
                             echo "        </a>";
-                            echo "        <button class='delete-btn delete' value='$pdID'>Delete</button>";
+                            echo "        <button class='delete-btn delete' value='" .(int)$pdID. "'>Delete</button>";
                             echo "    </td>";
                             echo "</tr>";
                         }

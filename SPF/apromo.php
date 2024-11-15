@@ -3,15 +3,30 @@
     require("session_handling.php");
     include("Connectdb.php");
 
-    $query = "SELECT promoImageID, promoImage, promoTitle FROM carousel_promo";
-    $result = mysqli_query($con, $query);
+    // $query = "SELECT promoImageID, promoImage, promoTitle FROM carousel_promo";
+    // $result = mysqli_query($con, $query);
 
-    if (!$result) {
-        die("Error fetching carousel images: " . mysqli_error($con));
+    // if (!$result) {
+    //     die("Error fetching carousel images: " . mysqli_error($con));
+    // }
+
+    // // closing database connection
+    // $con->close();
+
+    // NEW CODE
+    $query = "SELECT promoImageID, promoImage, promoTitle FROM carousel_promo";
+    $stmt = $con->prepare($query);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($stmt->errno) {
+        echo "<p style='margin-left: 300px'>Error fetching carousel images</p> <br/>";
+        // temporary
+        // echo $stmt->errno;
     }
 
     // closing database connection
-    $con->close();
+    $stmt->close();
 
 ?>
 
@@ -29,7 +44,7 @@
                 <img src="images/profile.png" class="profile">
                     <a href="admin.php">Dashboard</a>
                     <a href="apselect.php">Product</a>
-					<?php if ($_SESSION['role'] == 'admin') { ?>
+                    <?php if ($_SESSION['role'] == 'admin') { ?>
 					<a href="auser.php">Users</a>
 					<?php } ?>
                     <a href="areport.php">Statistic</a>
@@ -42,7 +57,7 @@
             <table>
                 <!-- automatically generating the table rows along with the associated product ID -->
                 <?php
-                    if (mysqli_num_rows($result) > 0) {
+                    if ($result->num_rows > 0) {
 
                         echo "<tr>";
                         echo "    <th>Image</th>";
@@ -50,16 +65,16 @@
                         echo "    <th></th>";
                         echo "</tr>";
 
-                        while ($tbrow = mysqli_fetch_assoc($result)) {
+                        while ($tbrow = $result->fetch_assoc()) {
                             $promoImgID = $tbrow['promoImageID'];
                             $promoImg = $tbrow['promoImage'];
                             $promoTitle = $tbrow['promoTitle'];
 
                             echo "<tr>";
-                            echo "    <td><img src='$promoImg' width='300px' height='120px'></td>";
-                            echo "    <td><p style='white-space: nowrap;'>$promoTitle</p></td>";
+                            echo "    <td><img src='" .htmlspecialchars($promoImg, ENT_NOQUOTES, 'UTF-8'). "' width='300px' height='120px'></td>";
+                            echo "    <td><p style='white-space: nowrap;'>" .htmlspecialchars_decode(htmlspecialchars($promoTitle, ENT_NOQUOTES, 'UTF-8'), ENT_QUOTES). "</p></td>";    // ENT_NOQUOTES allows ' and " to go thru cos if not 'it's' will look like 'It&#39;s'. however, htmlspecialchars_decode() was needed for decoding the quotes again they were somehow being encoded 
                             echo "    <td>";
-                            echo "        <button class='delete-btn delete' value='$promoImgID'>Delete</button>";
+                            echo "        <button class='delete-btn delete' value='" .(int)$promoImgID. "'>Delete</button>";
                             echo "    </td>";
                             echo "</tr>";
                         }
@@ -155,7 +170,7 @@
             delButtons.forEach(function(delBtn) {
                 delBtn.addEventListener("click", function() {
                     // retrieving the user ID from the button
-                    let productID = delBtn.getAttribute("value");
+                    let promoID = delBtn.getAttribute("value");
 
                     // displaying the alertbox
                     if (alertBox.style.display === "none") {
@@ -168,7 +183,7 @@
                     }
 
                     // locating the hidden input form field & passing productID into it
-                    document.querySelector("input[name='product-id']").value = productID;
+                    document.querySelector("input[name='product-id']").value = promoID;
                 });
             })
 
