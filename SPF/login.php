@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && (!isset($_SESSION['failed_attempts']
 
         if (!empty($uname) && !empty($pw)) {
             // Verify reCAPTCHA response
-            $recaptcha_secret_key = '6LeMQ3wqAAAAAFRMriEKNg37499YyvTGiZjIpHSb';  // Replace with your secret key
+            $recaptcha_secret_key = '6LeMQ3wqAAAAAFRMriEKNg37499YyvTGiZjIpHSb';
             $recaptcha_verify_url = 'https://www.google.com/recaptcha/api/siteverify';
             $recaptcha_data = [
                 'secret' => $recaptcha_secret_key,
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && (!isset($_SESSION['failed_attempts']
 <head>
     <title>Login</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Add the reCAPTCHA script -->
+  
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && (!isset($_SESSION['failed_attempts']
         <p>Password:</p>
         <input type="password" name="pw" placeholder="Password">
         <br/><br/> 
-        <!-- Add the reCAPTCHA widget here -->
+      
         <div class="g-recaptcha" data-sitekey="6LeMQ3wqAAAAACj6O3Jj3yK67h1DSzStHPUcMtHi"></div>
 
         <br/><br/>
