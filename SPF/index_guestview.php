@@ -36,22 +36,46 @@
             <?php
                 include("Connectdb.php");
 
-                $carouselQuery = "SELECT promoImage FROM carousel_promo";
-                $carouselResult = mysqli_query($con, $carouselQuery);
+                // OLD UNSECURE
+                // $carouselQuery = "SELECT promoImage FROM carousel_promo";
+                // $carouselResult = mysqli_query($con, $carouselQuery);
 
-                if(mysqli_num_rows($carouselResult) > 0) {
+                // if(mysqli_num_rows($carouselResult) > 0) {
+                //     $count = 0;
+
+                //     while($tbrow = mysqli_fetch_assoc(($carouselResult))) {
+                //         $carouselImg = $tbrow['promoImage'];
+
+                //         // promotional images
+                //         echo "<div class='promoSlide slide-fade' style='display: none;'>";
+                //         echo "    <img src='$carouselImg' alt='blackandyellowblackandyellow' style='width: 100%; height: 400px;'>";
+                //         echo "</div>";
+
+                //         $count += 1;
+                //     }
+                // }
+
+                // NEW SECURE CODE
+                $carouselQuery = "SELECT promoImage FROM carousel_promo";
+                $stmt = $con->prepare($carouselQuery);
+                $stmt->execute();
+                $carouselResult = $stmt->get_result();
+
+                if($carouselResult->num_rows > 0) {
                     $count = 0;
 
-                    while($tbrow = mysqli_fetch_assoc(($carouselResult))) {
+                    while($tbrow = $carouselResult->fetch_assoc()) {
                         $carouselImg = $tbrow['promoImage'];
 
                         // promotional images
                         echo "<div class='promoSlide slide-fade' style='display: none;'>";
-                        echo "    <img src='$carouselImg' alt='blackandyellowblackandyellow' style='width: 100%; height: 400px;'>";
+                        echo "    <img src='" .htmlspecialchars($carouselImg). "' alt='blackandyellowblackandyellow' style='width: 100%; height: 400px;'>";
                         echo "</div>";
 
                         $count += 1;
                     }
+                } else {
+                    echo "<p>No promotional material to show</p>";
                 }
 
 

@@ -102,7 +102,7 @@ else {
 	$query = "CREATE TABLE IF NOT EXISTS `product` (
 		`pdID` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 		`pdName` varchar(255) NOT NULL,
-		`pdPrice` int(3) NOT NULL,
+		`pdPrice` decimal(5,2) NOT NULL,
 		`pdSize` varchar(255) NOT NULL,
 		`pdStockCount` int(11) DEFAULT NULL,
 		`pdDescription` text,
@@ -267,8 +267,8 @@ else {
 		`state` text NOT NULL,
 		`zip` int(5) NOT NULL,
 		`datePay` date NOT NULL,
-		`cartID` bigint(20) UNSIGNED NOT NULL,
-		FOREIGN KEY (`cartID`) REFERENCES `cart` (`cartID`) ON DELETE CASCADE ON UPDATE CASCADE
+		`cartID` bigint(20) UNSIGNED NOT NULL
+		-- FOREIGN KEY (`cartID`) REFERENCES `cart` (`cartID`) ON DELETE CASCADE ON UPDATE CASCADE
 	) ENGINE=InnoDB";
 
 	$result = mysqli_query($con, $query);

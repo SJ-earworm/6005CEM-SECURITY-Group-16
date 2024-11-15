@@ -5,86 +5,140 @@ include("Connectdb.php");
 // Initialize the message variable
 $message = "";
 
-// Handle the sign-up form submission
-if ($_SERVER['REQUEST_METHOD'] == "POST") {
+if ($_SERVER['REQUEST_METHOD']=="POST"){
 
-    $email = $_POST['email'];
-    $uname = $_POST['name'];
-    $pw = $_POST['pw'];
-    $hashed_pw = password_hash($pw, PASSWORD_DEFAULT);
+// old unsecure code
+// $email = $_POST['email'];
+// $uname = $_POST['name'];
+// $pw = $_POST['pw'];
+// $hashed_pw = password_hash($pw, PASSWORD_DEFAULT);
 
-    // Check if password meets the requirements
-    if (strlen($pw) < 6) {
-        $message = "Password must be at least 6 characters long.";
-    } elseif (!preg_match("/[!@#$%^&*(),.?\":{}|<>]/", $pw)) {
-        $message = "Password must include at least one special character.";
-    } else {
-        // If password is valid, proceed to insert the data
-        if (!empty($email) && !empty($uname) && !empty($pw)) {
+// if(!empty($email) && !empty($uname) && !empty($pw)){
 
-            // SQL Query to Insert Data
-            $query = "INSERT INTO db(email, name, pw) VALUES ('$email','$uname','$hashed_pw')";
-            $result = mysqli_query($con, $query);
+// $query = "INSERT INTO db(email, name, pw) VALUES ('$email','$uname','$hashed_pw')";
 
-            if ($result) {
-               header("Location: login.php");
-                exit;
-            } else {
-                // If there was an issue with the query
-                $message = "Error: Unable to create your account. Please try again later.";
-            }
-        } else {
-            $message = "Please fill up all details to register.";
-        }
-    }
+// mysqli_query($con, $query);
+// header("Location: login.php");
+// die;
+// }else
+// {
+// echo "Please fill up all details to register.";
+// }
+
+
+
+	// new secure code
+	$email = $_POST['email'];
+	// $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+	$uname = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING);
+	$pw = $_POST['pw'];
+	$hashed_pw = password_hash($pw, PASSWORD_DEFAULT);
+
+	// temporary
+	// echo $uname;
+	// echo $hashed_pw;
+	// die();
+
+	// Check if password meets the requirements
+	if (strlen($pw) < 6) {
+		$message = "Password must be at least 6 characters long.";
+	} elseif (!preg_match("/[!@#$%^&*(),.?\":{}|<>]/", $pw)) {
+		$message = "Password must include at least one special character.";
+	} else {
+		// If password is valid, proceed to insert the data
+		if (!empty($email) && !empty($uname) && !empty($pw)){
+
+			// if email is not in valid email format a.k.a. does not pass the FILTER_VALIDATE_EMAIL
+			if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+				$message = "Invalid email!";
+				// die();
+			} else {
+				// SQL Query to Insert Data
+				$query = "INSERT INTO db(email, name, pw) VALUES (?, ?, ?)";
+
+				$stmt = $con->prepare($query);
+				$stmt->bind_param("sss", $email, $uname, $hashed_pw);
+				$stmt->execute();
+
+				// if query was inserted, it'll return 1
+				if ($stmt->affected_rows > 0) {
+					// redirecting to login upon succesful insert
+					header("Location: login.php");
+					exit;
+				} else {
+					// If there was an issue with the query
+					$message = "Error: Unable to create your account. Please try again later.";
+				}
+			}
+		} else {
+			echo "Please fill up all details to register.";
+		}
+
+	}
+
 }
+
 
 ?>
 
+
 <!DOCTYPE html>
-<html lang="utf-8">
+<html lang="utf=8">
+
+
 
 <head>
-    <title>Sign up</title>
-    <link rel="stylesheet" href="style.css">
+<title>Sign up</title>
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+ 
 
-    <nav>
-        <img src="images/logo.png" width="190" height="90">
-        <ul>
-            <li><a href="index.php"><img src="images/home.png" width="150" height="50"></a></li>
-            <li><a href="products_main.php"><img src="images/p.png" width="150" height="50"></a></li>
-            <li><a href="feedback.php"><img src="images/fb.png" width="150" height="50"></a></li>
-            <li><a href="about_us.php"><img src="images/au.png" width="150" height="50"></a></li>
-            <li><a href="login.php"><img src="images/login.png" width="100" height="50"></a></li>
-        </ul>
-    </nav>
+<nav>
+		<img src ="images/logo.png" width="190" height="90">
+	<ul>
+		<li><a href="index.php"><img src ="images/home.png" width="150" height="50"></a></li>
+		<li><a href="products_main.php"><img src ="images/p.png" width="150" height="50"></a></li>
+		<li><a href="feedback.php"><img src ="images/fb.png" width="150" height="50"></a></li>
+		<li><a href="about_us.php"><img src ="images/au.png" width="150" height="50"></a></li>
+		<li><a href="login.php"><img src ="images/login.png" width="100" height="50"></a></li>
+	</ul>
+</nav>
 
-    <div class="layout">
-        <br/><br/>
-        <h1>Sign Up</h1>
+<div class="layout">
+	<br/><br/>
+		<h1>Sign Up</h1>
+	<!-- OLD UNSECURE CODE: -->
+	<!-- <form action="#" method="post">
+		<p>Email:</p>
+		<input type="text" name="email" placeholder="Email">     <-- no 'required field', can just submit with empty fields
+		<p>Username:</p>											 dangerous, malicious actors can just masuk like that
+		<input type="text" name="name" placeholder="Username">
+		<p>Password:</p>
+		<input type="password" name="pw" placeholder="Password">
+		<button type="submit">Create Account</button>
+	</form> -->
 
-        <!-- Error or success message display -->
-        <?php if ($message != ""): ?>
-            <div class="error-message"><?php echo $message; ?></div>
-        <?php endif; ?>
+	<!-- NEW SECURE CODE -->
+	<!-- Error or success message display -->
+	<?php if ($message != ""): ?>
+		<div class="error-message"><?php echo $message; ?></div>
+	<?php endif; ?>
 
-        <form action="#" method="post">
-            <p>Email:</p>
-            <input type="text" name="email" placeholder="Email">
-            <p>Username:</p>
-            <input type="text" name="name" placeholder="Username">
-            <p>Password:</p>
-            <input type="password" name="pw" id="password" placeholder="Password">
-            <div id="password-strength">
-                <div class="strength-bar" id="strength-bar"></div>
-            </div>
-            <div id="strength-message" class="strength-message"></div>
-            <button type="submit">Create Account</button>
-        </form>
-    </div>
+	<form action="#" method="post">
+		<p>Email:</p>
+		<input type="text" name="email" placeholder="Email" autocomplete="off" required />
+		<p>Username:</p>
+		<input type="text" name="name" placeholder="Username" autocomplete="off" required />
+		<p>Password:</p>
+		<input type="password" name="pw" id="password" placeholder="Password" autocomplete="off" required />
+		<div id="password-strength">
+			<div class="strength-bar" id="strength-bar"></div>
+		</div>
+		<div id="strength-message" class="strength-message"></div>
+		<button type="submit">Create Account</button>
+	</form>
+</div>
 
 <script>
     const passwordField = document.getElementById('password');
@@ -148,5 +202,4 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 </script>
 
 </body>
-
 </html>
