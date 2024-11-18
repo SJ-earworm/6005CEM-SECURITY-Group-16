@@ -1,0 +1,427 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300&display=swap" rel="stylesheet');
+
+/*css for the entire website*/
+* {
+padding: 0;
+margin: 0;
+font-family: 'Open Sans', sans-serif;
+}
+
+::-webkit-scrollbar {
+width: 10px;
+}
+
+::-webkit-scrollbar-track {
+background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+background: rgb(255, 0, 0);
+border-radius: 10px;
+}
+
+body {
+background-image: url('images/bg.png');
+background-size: cover;
+background-repeat: no-repeat;
+background-attachment: fixed;
+}
+
+.content-margin {
+margin: 5rem 10rem 10rem 10rem;
+}
+
+.row {
+display: flex;
+}
+
+label.logo{
+line-height: 120px;
+padding: 0 100px;
+
+
+}
+
+nav {
+background: transparent;
+height: 90px;
+width: 100%;
+}
+
+nav ul{
+float: right;
+margin-right: 20px;
+
+}
+
+nav ul li{
+display: inline-block;
+line-height: 50px;
+margin: 0 10px;
+}
+
+header {
+display: flex;
+justify-content: space-between;
+z-index: 999;
+margin-bottom: 40px;
+}
+
+button {
+background-color: black;
+color: white;
+font-size: 16px;
+font-weight: bold;
+margin: 20px 0px;
+padding: 5px 15px;
+border-radius: 20px;
+border-style: groove;
+}
+
+
+
+
+
+/* su.php & login.php */
+.layout {
+width: 350px;
+top: 60%;
+left: 50%;
+transform: translate(-50%, -50%);
+position: absolute;
+color: #000; 
+padding: 20px;
+background-image: linear-gradient(red, purple);
+border-radius: 30px;
+border-style: ridge;
+}
+
+.layout h1 {
+font-size: 40px;
+text-align: center;
+text-transform: uppercase;
+color: white;
+margin: 40px 0;
+}
+
+.layout p {
+font-size: 20px;
+font-weight:bold;
+color: white;
+margin: 15px 0;
+}
+
+.layout input {
+font-size: 16px;
+width: 100%;
+padding: 15px 1px;
+border: 1;
+border-radius: 10px;
+}
+
+.layout button {
+background-color: black;
+color: white;
+font-size: 16px;
+font-weight: bold;
+margin: 20px 0px;
+padding: 10px 15px;
+width: 50%;
+border-radius: 20px;
+border-style: groove;
+}
+
+a {
+color: white;
+font-weight: bold;
+background-color: transparent;
+text-decoration: none;
+}
+
+
+
+
+
+/*index.html*/
+.welcome-title {
+/* padding: 5rem; */
+margin-top: 5rem;
+margin-bottom: 2rem;
+text-align: center;
+font-size: 3rem;
+}
+
+.carousel-container {
+width: 1000px;
+position: relative;
+margin: auto;
+margin-bottom: 5rem;
+}
+
+.carousel-container img {
+vertical-align: middle;
+}
+
+.prev, .next {
+cursor: pointer;
+position: absolute;
+top: 50%;
+width: auto;
+padding: 16px;
+margin-top: -22px;
+color: white;
+font-weight: bold;
+font-size: 18px;
+transition: 0.6s ease;
+border-radius: 0 3px 3px 0;
+user-select: none; /*to prevent cursor highlighting*/
+}
+
+.next {
+right: 0;
+border-radius: 3px 0 0 3px;
+}
+
+.prev:hover, .next:hover {
+background-color: rgba(0,0,0,0.8);
+}
+
+.dots {
+display: flex;
+justify-content: center;
+margin: 10px;
+}
+
+.dot {
+cursor: pointer;
+height: 15px;
+width: 15px;
+margin: 0 5px;
+background-color: #bbb;
+border-radius: 50%;
+display: inline-block;
+transition: background-color 0.6s ease;
+}
+
+.active, .dot:hover {
+background-color: #717171;
+}
+
+.slide-fade {
+animation-name: fade;
+animation-duration: 1.5s;
+}
+
+/* fade animation */
+@keyframes fade {
+from {opacity: .4}
+to {opacity: 1}
+}
+
+
+
+
+
+/*product.php*/
+.pd-pg-wrapper {
+display: flex;  /*general css to display elements in a row*/
+}
+
+.pd-pg-wrapper img {
+margin: 15px;
+}
+
+.pd-major-deets {
+margin: 15px;
+position: relative;
+}
+
+.added-to-cart {
+display: flex;
+justify-content: center;
+padding: 10px;
+background-color: rgb(255, 0, 0);
+color: whitesmoke;
+}
+
+
+
+
+
+/* products_main.php */
+.pd-category {
+margin: 10px;
+width: 20rem;
+height: 12rem;
+background-color: rgb(229, 229, 229);
+font-size: 2rem;
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+
+
+
+
+/* cart.php */
+.cart-box {
+margin: 8px 0;
+padding: 5px;
+font-weight: 800;
+background-color: rgb(229, 229, 229);
+box-shadow: 1px 1px rgb(116, 116, 116);
+border-radius: 10px;
+}
+
+.cart-box img {
+width: 7rem;
+height: 7rem;
+}
+
+.cart-box button {
+margin: 0 10px;
+padding: 15px;
+}
+
+.cart-box-layout {
+display: inline-table;
+}
+
+.cart-box-layout table {
+border-collapse: separate;
+border-spacing: 0.5rem;
+}
+
+.cart-box-layout td {
+padding-left: 2rem;
+padding-right: 2rem;
+width: 15rem;
+}
+
+
+
+
+
+
+
+/*products display for index.html & products pages*/
+.product-section {
+margin: 15px 10rem 5rem; /*to make the product section narrower*/
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+}
+
+.product-section a {
+text-decoration: none;
+color: inherit;
+}
+
+.product-box {
+width: 250px;
+height: 320px;
+background-color: rgb(229, 229, 229);
+box-shadow: 1px 1px rgb(116, 116, 116);
+border-radius: 10px;
+margin: 15px;
+padding: 5px;
+}
+
+.product-box img {
+display: block;
+margin: auto;
+width: 100%;
+height: 77%;
+border-radius: 10px;
+}
+
+.product-name {
+text-align: center;
+padding-top: 15px;
+}
+
+.product-price {
+text-align: center;
+}
+
+
+
+
+
+/* search bar */
+.search-container {
+position: relative;
+top: 0;
+left: 0;
+width: 100%;
+}
+
+.search {
+position: absolute;
+top: 100px;
+right: 0;
+margin: 30px;
+margin-right: 330px;
+}
+
+.search form {
+display: flex;
+}
+
+.search input[type=text] {
+padding: 7px;
+width: 250px;
+border: 2px solid rgb(86, 86, 86);
+}
+
+.search input[type=submit] {
+background-color: black;
+color: white;
+font-size: 16px;
+font-weight: bold;
+margin-left: 7px;
+padding: 10px 15px;
+width: 50%;
+border-radius: 20px;
+border-style: groove;
+}
+
+
+
+/* Error message */
+.error-message {
+background-color: #000;
+color: #fff;
+border: 1px solid #ddd;
+border-radius: 5px;
+padding: 15px;
+margin-bottom: 20px;
+font-size: 16px;
+font-weight: bold;
+text-align: center;
+width: 100%;
+max-width: 300px;
+margin: 20px auto;
+}
+
+
+.strength-message {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+/* Weak password - red */
+.strength-message.weak {
+    color: red;
+}
+
+/* Medium password - orange */
+.strength-message.medium {
+    color: orange;
+}
+
+/* Strong password - green */
+.strength-message.strong {
+    color: #32CD32;
+}
