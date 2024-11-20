@@ -1,4 +1,11 @@
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
+
     include("session_handling.php");
     include("Connectdb.php");
 ?>

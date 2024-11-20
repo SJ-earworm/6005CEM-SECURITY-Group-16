@@ -1,4 +1,10 @@
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     require("session_handling.php");
     include("Connectdb.php");
@@ -35,20 +41,46 @@
 
 
     // NEW SECURE CODE
-    $pdID = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);  // retrieving pdID from the URL & sanitsing it
-    $extraSanitisedPdId = abs($pdID);  // casting to positive number
+    $message = "";  // initialising error essage variable
 
-    //pulling the current product's data from the database
-    $pdQuery = "SELECT pdName, pdPrice, pdSize, pdStockCount, pdDescription, pdImage FROM product WHERE pdID = ?";
-    $stmt = $con->prepare($pdQuery);
-    $stmt->bind_param("i", $extraSanitisedPdId);
-    $stmt->execute();
-    $stmt->bind_result($pdName, $pdPrice, $pdSize, $pdStockCount, $pdDescription, $pdImg);
-    if (!$stmt->fetch()) {
-        die("Could not fetch product");
+    // if db_aeditproduct.php fails
+    if (isset($_GET['error'])) {
+        // $returnResponse = explode(',', $_GET['id'], $_GET['error']);
+        // $pdID = filter_var($returnResponse[0], FILTER_SANITIZE_NUMBER_INT);
+        // $message = filter_var($returnResponse[1], FILTER_SANITIZE_STRING);
+        $pdID = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
+        $extraSanitisedPdId = abs($pdID);  // casting to positive number
+        $message = filter_input(INPUT_GET, 'error', FILTER_SANITIZE_STRING);
+
+        // debugging
+        // echo "In the if block <br/>";
+        // echo $extraSanitisedPdId . "<br/>";
+        // echo $message . "<br/>";
+        // die;
+    } else {
+        $pdID = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);  // retrieving pdID from the URL & sanitsing it
+        $extraSanitisedPdId = abs($pdID);  // casting to positive number
     }
 
-    $stmt->close();
+    // $pdID = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);  // retrieving pdID from the URL & sanitsing it
+    // $extraSanitisedPdId = abs($pdID);  // casting to positive number
+
+    //pulling the current product's data from the database
+    try {
+        $pdQuery = "SELECT pdName, pdPrice, pdSize, pdStockCount, pdDescription, pdImage FROM product WHERE pdID = ?";
+        $stmt = $con->prepare($pdQuery);
+        $stmt->bind_param("i", $extraSanitisedPdId);
+        $stmt->execute();
+        $stmt->bind_result($pdName, $pdPrice, $pdSize, $pdStockCount, $pdDescription, $pdImg);
+        if (!$stmt->fetch()) {
+            $message = "Could not fetch product";
+        }
+
+        $stmt->close();
+    } catch (mysqli_sql_exception $e) {
+        $message = "Could not fetch product. Please try again later.";
+        error_log("Edit Product page | Could not fetch product" . $e->getMessage());
+    }
 
 
     // ----------------------------------------------------------------------------------------------
@@ -78,33 +110,38 @@
     // }
 
     // NEW CODE TO MATCH CONSISTENCY OF PREPARED STATEMENTS
-    $pdCategoriesQuery = "SELECT catID, catName FROM product_category WHERE catName <> 'featured'";
-    $stmt = $con->prepare($pdCategoriesQuery);
-    $stmt->execute();
-    $PCQueryResult = $stmt->get_result();
-    // error handling
-    if (!$PCQueryResult) {
-        die("Could not fetch product categories");
-        // temporary
-        // echo mysqli_error($con);
-    }
-
-    // array to hold all product category names from the database
+    // initialising array for holding all product category names from the database
     $dbCategory = array();
 
-    if ($PCQueryResult->num_rows > 0) {
-        while($allCatRow = $PCQueryResult->fetch_assoc()) {
-            // array to hold all product category names from the database
-            $catData = array(
-                "cat_id" => $allCatRow['catID'],
-                "cat_name" => $allCatRow['catName']
-            );
+    try {
+        $pdCategoriesQuery = "SELECT catID, catName FROM product_category WHERE catName <> 'featured'";
+        $stmt = $con->prepare($pdCategoriesQuery);
+        $stmt->execute();
+        $PCQueryResult = $stmt->get_result();
+        // error handling
+        if (!$PCQueryResult) {
+            $message = "Could not fetch product categories";
+            // die("Could not fetch product categories");
+            // temporary
+            // echo mysqli_error($con);
+        } elseif ($PCQueryResult->num_rows > 0) {
+            while($allCatRow = $PCQueryResult->fetch_assoc()) {
+                // array to hold all product category names from the database
+                $catData = array(
+                    "cat_id" => $allCatRow['catID'],
+                    "cat_name" => $allCatRow['catName']
+                );
 
-            $dbCategory[] = $catData;
+                $dbCategory[] = $catData;
+            }
         }
-    }
 
-    $stmt->close();
+        $stmt->close();
+
+    } catch (mysqli_sql_exception $e) {
+        $message = "Could not fetch product categories";
+        error_log("Edit Product page | Could not fetch product categories" . $e->getMessage());
+    }
 
 // ---------------------------------------------------------------------------------------------------
 
@@ -127,30 +164,36 @@
     // }
 
     // NEW SECURE CODE
-    $pdUserCategoryQuery = "SELECT catID FROM pd_category_relationship WHERE pdID = ?";
-    $stmt = $con->prepare($pdUserCategoryQuery);
-    $stmt->bind_param("i", $extraSanitisedPdId);
-    $stmt->execute();
-    $PUserCQueryResult = $stmt->get_result();
-    // error handling
-    if (!$PUserCQueryResult) {
-        die("Could not retrieve selected product categories.");
-        // temporary
-        // echo mysqli_error($con);
-    }
-    
-    // array holding existing product category assign
+    // initialising array for holding existing product category assign
     $checkedCategory = array();
 
-    if ($PUserCQueryResult->num_rows > 0) {
-        while($assocCatRow = $PUserCQueryResult->fetch_assoc()) {
-            $checkedCategory[] = $assocCatRow['catID'];
+    try {
+        $pdUserCategoryQuery = "SELECT catID FROM pd_category_relationship WHERE pdID = ?";
+        $stmt = $con->prepare($pdUserCategoryQuery);
+        $stmt->bind_param("i", $extraSanitisedPdId);
+        $stmt->execute();
+        $PUserCQueryResult = $stmt->get_result();
+        // error handling
+        if (!$PUserCQueryResult) {
+            $message = "Could not retrieve selected product categories.";
+            // temporary
+            // echo mysqli_error($con);
         }
+
+        if ($PUserCQueryResult->num_rows > 0) {
+            while($assocCatRow = $PUserCQueryResult->fetch_assoc()) {
+                $checkedCategory[] = $assocCatRow['catID'];
+            }
+        }
+
+
+        // closing database connection
+        $stmt->close();
+
+    } catch (mysqli_sql_exception $e) {
+        $message = "Could not retrieve selected product categories.";
+        error_log("Edit Product page | Could not retrieve selected product categories" . $e->getMessage());
     }
-
-
-    // closing database connection
-    $stmt->close();
 ?>
 
 
@@ -176,6 +219,11 @@
 			<a href="index.php">Statistic</a>
 			<a href="index.php">Logout</a>
 </div>
+
+<!-- error message display section -->
+<?php if (isset($message) && $message != ''): ?>
+    <div class="error-message"><?php echo $message; ?></div>
+<?php endif; ?>
 
 <div class="layout">
 <h1>Edit Product</h1>

@@ -6,8 +6,9 @@
     ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     require("Connectdb.php");
+    include("session_handling.php");
 
-    if ($_SERVER['REQUEST_METHOD']=="POST") {
+    // if ($_SERVER['REQUEST_METHOD']=="POST") {
         // if (isset($_POST['product-id'])) {
         //     // retrieving $pdID from confirmation button
         //     $pdId = $_POST['product-id'];
@@ -24,24 +25,23 @@
         // }
 
         // NEW SECURE CODE
-        if (isset($_POST['product-id'])) {
+        if (isset($_GET['cart-id'])) {
             // retrieving $pdID from confirmation button
-            $pdId = $_POST['product-id'];
-            $extraSanitisedPdId = filter_var($pdId, FILTER_SANITIZE_NUMBER_INT);
+            $cartID = filter_input(INPUT_GET, 'cart-id', FILTER_SANITIZE_NUMBER_INT);
 
             try {
-                $query = "DELETE FROM product WHERE pdID = ?";
+                $query = "DELETE FROM cart WHERE cartID = ?";
                 $stmt = $con->prepare($query);
-                $stmt->bind_param("i", $extraSanitisedPdId);
+                $stmt->bind_param("i", $cartID);
                 $stmt->execute();
 
                 if ($stmt->affected_rows > 0) {
-                    header("Location: aviewproducts.php");
+                    header("Location: cart.php");
                 }
                 else {
-                    $jsonmessage = "Could not delete product. Please try again later.";
-                    error_log("Delete Product Backend file | Error deleting product " . $e->getMessage());
-                    header("Location: aviewproducts.php?error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                    $jsonmessage = "Could not delete cart item. Please try again later.";
+                    error_log("Delete Cart Item Backend file | Error deleting cart item: " . $stmt->errno);
+                    header("Location: cart.php?error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
                     die;
                     // echo "Could not delete product";
                     // temporary
@@ -51,11 +51,11 @@
                 $stmt->close();
 
             } catch (mysqli_sql_exception $e) {
-                $jsonmessage = "Could not delete product. Please try again later.";
-                error_log("Delete Product Backend file | Error deleting product " . $e->getMessage());
-                header("Location: aviewproducts.php?error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                $jsonmessage = "Could not delete cart item. Please try again later.";
+                error_log("Delete Cart Item Backend file | Error deleting cart item: " . $e->getMessage());
+                header("Location: cart.php?error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
                 die;
             }
         }
-    }
+    // }
 ?>

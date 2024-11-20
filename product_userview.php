@@ -1,5 +1,11 @@
 <!-- PHP SQL query -->
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     include("Connectdb.php");
 
@@ -37,27 +43,48 @@
     // $con->close();
 
     // NEW CODE
+    $message = "";  // initialising error message variable
+
     $pdID = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
     $extraSanitisedPdId = abs($pdID);
 
-    //retrieving the necessary data from the database
-    $query = "SELECT pdName, pdPrice, pdSize, pdStockCount, pdDescription, pdImage FROM product WHERE pdID = ?";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("i", $extraSanitisedPdId);
-    $stmt->execute();
-    $stmt->bind_result($pdName, $pdPrice, $pdSize, $pdStockCount, $pdDescription, $pdImg);
-    // $stmt->fetch();
+    // initialising db variables
+    $pdName = "";
+    $pdPrice = "";
+    $pdSize = "";
+    $pdStockCount = "";
+    $pdDescription = "";
+    $pdImg = "";
 
-    if (!$stmt->fetch()) {
-        echo "Product not found";
-        error_log('Product page, product not found.', $stmt->errno);
-        // temporary
-        // echo $stmt->errno;
-    } else if ($stmt->errno) {
-        echo "Could not retrieve product.";
-        error_log('Product page, could not retrieve product: ' . $stmt->errno);
-        // temporary
-        // echo $stmt->errno;
+    try {
+        //retrieving the necessary data from the database
+        $query = "SELECT pdName, pdPrice, pdSize, pdStockCount, pdDescription, pdImage FROM product WHERE pdID = ?";
+        $stmt = $con->prepare($query);
+        $stmt->bind_param("i", $extraSanitisedPdId);
+        $stmt->execute();
+        $stmt->bind_result($pdName, $pdPrice, $pdSize, $pdStockCount, $pdDescription, $pdImg);
+        // $stmt->fetch();
+
+        //error message if result from query not found
+        if (!$stmt->fetch()) {
+            throw new Exception("Product not found", 1);    // 2nd parameter is a custom code to identify which Exception was thrown
+            // $message = "Product not found";
+            // error_log('Product page, product not found.', $stmt->errno);
+        } else if ($stmt->errno) {
+            throw new Exception("Could not retrieve product." . $stmt->errno, 2);   // 2nd parameter is a custom code to identify which Exception was thrown
+            // echo "Could not retrieve product.";
+            // error_log('Product Userview page | could not retrieve product: ' . $stmt->errno);
+        }
+
+        $stmt->close();
+
+    } catch (Exception $e) {
+        if ($e->getCode() === 1) {
+            $message = "Product not found";
+        } else {
+            $message = "Could not retrieve product.";
+            error_log('Product Userview page | ' . $e->getMessage());
+        }
     }
 
 
@@ -86,8 +113,6 @@
     // $pdStockCount = $tbrow['pdStockCount'];
     // $pdDescription = $tbrow['pdDescription'];
 
-
-    $stmt->close();
 ?>
 
 
@@ -123,40 +148,45 @@
         </header>
 
         <div class="content-margin">
-        <!--product description here-->
-            <div class="pd-pg-wrapper">
-                <img src="<?php echo htmlspecialchars($pdImg) ?>" alt="Product Image" width="450rem" height="450rem;">
-                <div class="pd-major-deets">
-                    <h1 style="font-size: 3rem; flex-wrap: wrap;"><?php echo $sanitisedPdName ?></h1>
-                    <h2 style="color: rgba(255, 0, 0, 0.858); margin-bottom: 15px"><?php echo $pdPrice ?></h2>
-                    <h3>Size: <?php echo htmlspecialchars($pdSize) ?></h3>
-                    <p>Stock count: <?php echo (int)$pdStockCount ?></p><br/>
-                    <h2>Description</h2>
-                    <p><?php echo $sanitisedPdDescription ?></p><br/><br/><br/>
+                <!--product description here-->
+                <div class="pd-pg-wrapper">
+                    <!-- error message display section -->
+                    <?php if (isset($message) && $message != ''): ?>
+                        <div class="error-message"><?php echo $message; ?></div>
+                    <?php else: ?>
+                    <img src="<?php echo htmlspecialchars($pdImg) ?>" alt="Product Image" width="450rem" height="450rem;">
+                    <div class="pd-major-deets">
+                        <h1 style="font-size: 3rem; flex-wrap: wrap;"><?php echo $sanitisedPdName ?></h1>
+                        <h2 style="color: rgba(255, 0, 0, 0.858); margin-bottom: 15px"><?php echo $pdPrice ?></h2>
+                        <h3>Size: <?php echo htmlspecialchars($pdSize) ?></h3>
+                        <p>Stock count: <?php echo (int)$pdStockCount ?></p><br/>
+                        <h2>Description</h2>
+                        <p><?php echo $sanitisedPdDescription ?></p><br/><br/><br/>
 
-                    <div>
-                        <label style="font-weight: bold;">Quantity</label>
-                        <select id="quantity-select" name="quantity-select">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9">9</option>
-                            <option value="10">10</option>
-                            <option value="11">11</option>
-                            <option value="12">12</option>
-                            <option value="13">13</option>
-                            <option value="14">14</option>
-                            <option value="15">15</option>
-                        </select>
+                        <div>
+                            <label style="font-weight: bold;">Quantity</label>
+                            <select id="quantity-select" name="quantity-select">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                            </select>
+                        </div>
+                        <button id="addToCartBtn" style="margin-top: 20px;">Add to cart</button>
                     </div>
-                    <button id="addToCartBtn" style="margin-top: 20px;">Add to cart</button>
+                    <?php endif; ?>
                 </div>
-            </div>
             <!-- printing a success message when item(s) successfully added to cart -->
             <div id="successMessage" class="added-to-cart"></div>
         </div>
@@ -187,6 +217,32 @@
                 pdSelectData.quantity = productQuant.value;
 
                 //sending HTTP POST request to the cart PHP script (adding to cart)
+                // fetch('db_cart_insert.php', {
+                //     method: 'POST',
+                //     body: JSON.stringify(pdSelectData),
+                //     headers: {
+                //         'Content-Type': 'application/json'
+                //     }
+                // })
+                // .then(response => {
+                //     //checking if response was successful
+                //     if (response.status === 200) {
+                //         //retrieving the text that `db_cart_insert.php` has returned
+                //         requestSuccess = true;
+                //         console.log("Response received from db_cart_insert.php");
+                //     }
+                // })
+                // .catch(error => {
+                //     console.error("Error: ", error);
+                // })
+                // .finally(() => {
+                //     if (requestSuccess) {
+                //         const successsMsg = document.getElementById("successMessage");
+                //         successsMsg.textContent = "Items added to cart";
+                //     }
+                // });
+
+                // NEW CODE
                 fetch('db_cart_insert.php', {
                     method: 'POST',
                     body: JSON.stringify(pdSelectData),
@@ -194,23 +250,32 @@
                         'Content-Type': 'application/json'
                     }
                 })
-                .then(response => {
-                    //checking if response was successful
-                    if (response.status === 200) {
-                        //retrieving the text that `db_cart_insert.php` has returned
-                        requestSuccess = true;
-                        console.log("Response received from db_cart_insert.php");
+                .then(response => response.json())
+                .then(data => {
+                    const successMsg = document.getElementById("successMessage");
+                    console.log('came back from the backend');
+
+                    if (data.status === 'fail') {
+                        successMsg.style.visibility = 'visible';
+                        successMsg.style.backgroundColor = 'rgb(255, 0, 0)';
+                        successMsg.textContent = data.message;
+                        console.log('fail');
+                    } else if (data.status === 'success') {
+                        successMsg.style.visibility = 'visible';
+                        successMsg.style.backgroundColor = 'black';
+                        successMsg.textContent = "Items added to cart";
+                        console.log('success');
                     }
                 })
                 .catch(error => {
                     console.error("Error: ", error);
                 })
-                .finally(() => {
-                    if (requestSuccess) {
-                        const successsMsg = document.getElementById("successMessage");
-                        successsMsg.textContent = "Items added to cart";
-                    }
-                });
+                // .finally(() => {
+                //     if (requestSuccess) {
+                //         const successsMsg = document.getElementById("successMessage");
+                //         successsMsg.textContent = "Items added to cart";
+                //     }
+                // });
             }
         </script>
     </body>

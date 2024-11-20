@@ -1,4 +1,10 @@
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     include("Connectdb.php");
     
@@ -135,41 +141,58 @@
                 // another file type
                 $imageMIME = mime_content_type($imageFileTemp);
                 if (strpos($imageMIME, 'image/') === false) {
-                    echo "Invalid file type! <br/>";
-                    die();
+                    // sending error message back to aeditproduct.php as a 'response' to display
+                    $jsonmessage = "Invalid file type!";
+                    header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                    die;
                 }
 
                 $uploadImage = 'images/' . $sanitised_filename . '.' . $file_extension;
                 move_uploaded_file($imageFileTemp, $uploadImage);
+            } else {
+                // sending error message back to aeditproduct.php as a 'response' to display
+                $jsonmessage = "Invalid file type!";
+                header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                die;
             }
         }
 
 
         // updating the product data
-        $queryUpdate = "UPDATE product
-                  SET 
-                    pdName = ?, 
-                    pdPrice = ?, 
-                    pdSize = ?, 
-                    pdStockCount = ?, 
-                    pdDescription = ?, 
-                    pdImage = ? 
-                  WHERE pdID = ?";
-        
-        $stmt = $con->prepare($queryUpdate);
-        $stmt->bind_param("sdsissi", $pdName, $filteredPrice, $filteredSize, $filteredStockCount, $sanitisedPdDescription, $uploadImage, $extraSanitisedPdId);
-        $stmt->execute();
+        try {
+            $queryUpdate = "UPDATE product
+                    SET 
+                        pdName = ?, 
+                        pdPrice = ?, 
+                        pdSize = ?, 
+                        pdStockCount = ?, 
+                        pdDescription = ?, 
+                        pdImage = ? 
+                    WHERE pdID = ?";
+            
+            $stmt = $con->prepare($queryUpdate);
+            $stmt->bind_param("sdsissi", $pdName, $filteredPrice, $filteredSize, $filteredStockCount, $sanitisedPdDescription, $uploadImage, $extraSanitisedPdId);
+            $stmt->execute();
 
-        // If there were updates to be made but an error occured
-        if ($stmt->errno) {
-            echo "Couldn't update product";
-            die();
-            // note: if the input data is identical to the existing data, no updates will be made & affected rows remain at 0
-            //       hence why we need to use $stmt->errno to detect problems with the insert instead of using $stmt->affected_rows
+            // If there were updates to be made but an error occured
+            if ($stmt->errno) {
+                // echo "Couldn't update product";
+                $jsonmessage = "Could not update product. Please try again later.";
+                error_log("Edit Product Backend file | Error updating product " . $stmt->errno);
+                header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                die;
+                // note: if the input data is identical to the existing data, no updates will be made & affected rows remain at 0
+                //       hence why we need to use $stmt->errno to detect problems with the insert instead of using $stmt->affected_rows
+            }
+
+            // closing current stmt
+            $stmt->close();
+        } catch (mysqli_sql_exception $e) {
+            $jsonmessage = "Could not update product. Please try again later.";
+            error_log("Edit Product Backend file | Error updating product " . $e->getMessage());
+            header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+            die;
         }
-
-        // closing current stmt
-        $stmt->close();
 
 
 
@@ -180,21 +203,32 @@
 
 
         // clearing the product's product-category associations before inserting the new & updated ones
-        $clearExistingUserCategories = "DELETE FROM pd_category_relationship WHERE pdID = ?";
-        $stmt = $con->prepare($clearExistingUserCategories);
-        $stmt->bind_param("i", $extraSanitisedPdId);
-        $stmt->execute();
+        try {
+            $clearExistingUserCategories = "DELETE FROM pd_category_relationship WHERE pdID = ?";
+            $stmt = $con->prepare($clearExistingUserCategories);
+            $stmt->bind_param("i", $extraSanitisedPdId);
+            $stmt->execute();
 
-        // error handling
-        if ($stmt->errno) {
-            echo "Error clearing product-category associations before the category UPDATE process";
-            // note: if the input data is identical to the existing data, no updates will be made & affected rows remain at 0
-            //       hence why we need to use $stmt->errno to detect problems with the insert instead of using $stmt->affected_rows
-            die();
+            // error handling
+            if ($stmt->errno) {
+                // echo "Error clearing product-category associations before the category UPDATE process";
+                $jsonmessage = "Could not update product. Please try again later.";
+                error_log("Edit Product Backend file | Error clearing selected categories " . $stmt->errno);
+                header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                die;
+                // note: if the input data is identical to the existing data, no updates will be made & affected rows remain at 0
+                //       hence why we need to use $stmt->errno to detect problems with the insert instead of using $stmt->affected_rows
+                die();
+            }
+
+            // closing current stmt
+            $stmt->close();
+        } catch (mysqli_sql_exception $e) {
+            $jsonmessage = "Could not update product. Please try again later.";
+            error_log("Edit Product Backend file | Error clearing selected categories " . $e->getMessage());
+            header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+            die;
         }
-
-        // closing current stmt
-        $stmt->close();
 
         // when the user selects a category
         // iterate through each user input and inserting product-category relationship into database
@@ -203,22 +237,32 @@
             // sanitising catID
             $sanitisedPdUserCategory = filter_var($pdUserCategory, FILTER_SANITIZE_NUMBER_INT);
 
-            $assignNewCategory = "INSERT INTO pd_category_relationship(pdID, catID) VALUES (? , (SELECT catID FROM product_category WHERE catID = ?))";
-            $stmt = $con->prepare($assignNewCategory);
-            $stmt->bind_param("ii", $extraSanitisedPdId, $sanitisedPdUserCategory);
-            $stmt->execute();
+            try {
+                $assignNewCategory = "INSERT INTO pd_category_relationship(pdID, catID) VALUES (? , (SELECT catID FROM product_category WHERE catID = ?))";
+                $stmt = $con->prepare($assignNewCategory);
+                $stmt->bind_param("ii", $extraSanitisedPdId, $sanitisedPdUserCategory);
+                $stmt->execute();
 
-            if ($stmt->affected_rows > 0) {
-                // redirect to `viewproducts.php`
-                header("Location: aviewproducts.php");
-            } else {
-                echo "<p style='margin-left: 300px;'>An error occured, please try again</p>";
-                // temporary
-                // echo $stmt->error;
+                if ($stmt->affected_rows > 0) {
+                    // redirect to `viewproducts.php`
+                    header("Location: aviewproducts.php");
+                } else {
+                    // echo "<p style='margin-left: 300px;'>An error occured, please try again</p>";
+                    $jsonmessage = "Could not update product. Please try again later.";
+                    error_log("Edit Product Backend file | Error clearing selected categories " . $stmt->errno);
+                    header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                    die;
+                    // temporary
+                    // echo $stmt->error;
+                }
+
+                $stmt->close();
+            } catch (mysqli_sql_exception $e) {
+                $jsonmessage = "Could not update product. Please try again later.";
+                error_log("Edit Product Backend file | Error setting new selected categories " . $e->getMessage());
+                header("Location: aeditproduct.php?id=" .$extraSanitisedPdId. "&error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+                die;
             }
         }
-
-
-        $stmt->close();
     }
 ?>
