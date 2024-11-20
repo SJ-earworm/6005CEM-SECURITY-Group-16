@@ -1,4 +1,10 @@
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     include("Connectdb.php");
 
@@ -23,30 +29,45 @@
     // $con->close();
 
     // NEW CODE
-    $query = "SELECT
-                Cart.cartID, 
-                Product.pdImage, 
-                Product.pdName, 
-                Cart.quantity 
-              FROM cart 
-              JOIN product ON cart.pdID = product.pdID 
-              WHERE userID = ?";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("i", $userID);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // initialising variables
+    $message = "";
+    $result = "";
 
-    //error message if result from query not found
-    if ($stmt->errno) {
-        echo "Could not retrieve cart items. <br/>";
-        error_log("Could not retrieve cart items.", $stmt->error);
-        // temporary
-        // echo $stmt->errno;
+    // if failed to delete cart item
+    if (isset($_GET['error'])) {
+        $message = filter_input(INPUT_GET, 'error', FILTER_SANITIZE_STRING);
     }
 
+    try {
+        $query = "SELECT
+                    Cart.cartID, 
+                    Product.pdImage, 
+                    Product.pdName, 
+                    Cart.quantity 
+                FROM cart 
+                JOIN product ON cart.pdID = product.pdID 
+                WHERE userID = ?";
+        $stmt = $con->prepare($query);
+        $stmt->bind_param("i", $userID);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-    // closing database connection
-    $stmt->close();
+        //error message if result from query not found
+        if ($stmt->errno) {
+            echo "Could not retrieve cart items. <br/>";
+            error_log("Could not retrieve cart items.", $stmt->error);
+            // temporary
+            // echo $stmt->errno;
+        }
+
+
+        // closing database connection
+        $stmt->close();
+
+    } catch (mysqli_sql_exception $e) {
+        $message = "Error retrieving cart items. Please try again later.";
+        error_log("Cart page | Error retrieving cart items." . $e->getMessage());
+    }
 ?>
 
 
@@ -84,12 +105,16 @@
             
             <!-- section to display items in user's cart -->
             <?php
+                if (isset($message) && $message != '') {
+                    echo "<div class='error-message'>$message</div>";
+                }
+
                 if ($result->num_rows > 0) {
                     // intialising array for holding cartIDs (cos multiple cartID can be assigned to a user. that's how the system registers which cart item belongs to whose cart)
                     $cartIDs = [];
 
                     while ($tbrow = $result->fetch_assoc()) {
-                        $cartIDs[] = $tbrow['cartID'];
+                        $cartIDs[] = (int)$tbrow['cartID'];
                         $pdImg = $tbrow['pdImage'];
                         // $pdName = $tbrow['pdName'];
                         $pdName = htmlspecialchars($tbrow['pdName'], ENT_NOQUOTES, 'UTF-8');
@@ -111,7 +136,9 @@
                         echo "                <td><p>x " .(int)$quantity. "</p></td>";
                         echo "                <td class='row'>";
                         echo "                    <button>Edit</button>";
-                        echo "                    <button>Delete</button>";
+                        echo "                    <a href='db_cartitem_delete.php?cart-id=" .(int)$tbrow['cartID']. "'>";
+                        echo "                        <button>Delete</button>";
+                        echo "                    </a>";
                         echo "                </td>";
                         echo "            </tr>";
                         echo "        </table>";
@@ -120,7 +147,7 @@
                     }
 
                     $jsoncartIDs = json_encode($cartIDs);  // encoding cartIDs array into json to be passed over the URL properly
-                                                                       // urlencode to convert $cartIDs to a URL friendly format
+                                                                        // urlencode to convert $cartIDs to a URL friendly format
                     echo "<div style='width: 100%; margin-top: 20px; display: flex; flex-direction: row; justify-content: center'>";
                     echo "  <button id='checkoutBtn' style='width: 240px'>Check Out</button>";
                     echo "</div>";

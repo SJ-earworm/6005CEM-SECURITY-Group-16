@@ -1,5 +1,11 @@
 <!-- PHP SQL query -->
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     include("Connectdb.php");
 
@@ -37,28 +43,48 @@
     // $con->close();
 
     // NEW CODE
+    $message = "";  // initialising error message variable
+
     $pdID = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_NUMBER_INT);
     $extraSanitisedPdId = abs($pdID);
 
-    //retrieving the necessary data from the database
-    $query = "SELECT pdName, pdPrice, pdSize, pdStockCount, pdDescription, pdImage FROM product WHERE pdID = ?";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("i", $extraSanitisedPdId);
-    $stmt->execute();
-    $stmt->bind_result($pdName, $pdPrice, $pdSize, $pdStockCount, $pdDescription, $pdImg);
-    $stmt->fetch();
+    // initialising db variables
+    $pdName = "";
+    $pdPrice = "";
+    $pdSize = "";
+    $pdStockCount = "";
+    $pdDescription = "";
+    $pdImg = "";
 
-    //error message if result from query not found
-    if ($stmt->errno) {
-        echo "Could not retrieve product.";
-        error_log('Product page, could not retrieve product: ' . $stmt->errno);
-        // temporary
-        // echo $stmt->errno;
-    } else if (!$stmt->fetch()) {
-        echo "Product not found";
-        error_log('Product page, product not found.', $stmt->errno);
-        // temporary
-        // echo $stmt->errno;
+    try {
+        //retrieving the necessary data from the database
+        $query = "SELECT pdName, pdPrice, pdSize, pdStockCount, pdDescription, pdImage FROM product WHERE pdID = ?";
+        $stmt = $con->prepare($query);
+        $stmt->bind_param("i", $extraSanitisedPdId);
+        $stmt->execute();
+        $stmt->bind_result($pdName, $pdPrice, $pdSize, $pdStockCount, $pdDescription, $pdImg);
+        // $stmt->fetch();
+
+        //error message if result from query not found
+        if (!$stmt->fetch()) {
+            throw new Exception("Product not found", 1);    // 2nd parameter is a custom code to identify which Exception was thrown
+            // $message = "Product not found";
+            // error_log('Product page, product not found.', $stmt->errno);
+        } else if ($stmt->errno) {
+            throw new Exception("Could not retrieve product." . $stmt->errno, 2);   // 2nd parameter is a custom code to identify which Exception was thrown
+            // echo "Could not retrieve product.";
+            // error_log('Product Userview page | could not retrieve product: ' . $stmt->errno);
+        }
+
+        $stmt->close();
+
+    } catch (Exception $e) {
+        if ($e->getCode() === 1) {
+            $message = "Product not found";
+        } else {
+            $message = "Could not retrieve product.";
+            error_log('Product Userview page | ' . $e->getMessage());
+        }
     }
 ?>
 
@@ -96,6 +122,10 @@
         <div class="content-margin">
         <!--product description here-->
             <div class="pd-pg-wrapper">
+                <!-- error message display section -->
+                <?php if (isset($message) && $message != ''): ?>
+                    <div class="error-message"><?php echo $message; ?></div>
+                <?php else: ?>
                 <img src="<?php echo htmlspecialchars($pdImg) ?>" alt="Product Image" width="450rem" height="450rem;">
                 <div class="pd-major-deets">
                     <h1 style="font-size: 3rem; flex-wrap: wrap;"><?php echo htmlspecialchars_decode(htmlspecialchars($pdName, ENT_NOQUOTES, 'UTF-8'), ENT_QUOTES); ?></h1>
@@ -129,6 +159,7 @@
                         <button id="addToCartBtn" style="margin-top: 20px;">Add to cart</button>
                     </a>
                 </div>
+                <?php endif; ?>
             </div>
             <!-- printing a success message when item(s) successfully added to cart -->
             <div id="successMessage" class="added-to-cart"></div>

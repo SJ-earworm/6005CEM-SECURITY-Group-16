@@ -1,62 +1,91 @@
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     require("session_handling.php");
     include("Connectdb.php");
 
-    // initialising $query
-    $query = "";
-
-    // if the user uses the search filter
-    if (isset($_POST['search-query'])) {
-        // cleaning the input from whitespace & special characters
-        $userSearch = $_POST['search-query'];
-        $userSearch = trim($userSearch);
-        $userSearch = addslashes($userSearch);  // not secure enough, only escapes a limited amount of characters
-
-        // database query
-        $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product WHERE ";
-        $query .= "pdName LIKE '%$userSearch%'";
-    }
-    else {
-        // display all items if search filter is empty
-        $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product";
-    }
-
-    // retrieving query result
-    $result = mysqli_query($con, $query);
-
-    //error message if result from query not found
-    if (!$result) {
-        die('SQL query error: ' . mysqli_error($con));
-    }
-
-    // NEW SECURE CODE
     // initialising $query
     // $query = "";
 
     // // if the user uses the search filter
     // if (isset($_POST['search-query'])) {
     //     // cleaning the input from whitespace & special characters
-    //     $rawUserSearchTrim = trim($_POST['search-query']);
-    //     $sanitisedUserSearch = filter_var($rawUserSearchTrim, FILTER_SANITIZE_STRING);
-    //     $userSearch = "%$sanitisedUserSearch%";
-        
+    //     $userSearch = $_POST['search-query'];
+    //     $userSearch = trim($userSearch);
+    //     $userSearch = addslashes($userSearch);  // not secure enough, only escapes a limited amount of characters
 
     //     // database query
     //     $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product WHERE ";
-    //     $query .= "pdName LIKE ?";
-
-    //     $stmt = $con->prepare($query);
-    //     $stmt->bind_param("s", $userSearch);
+    //     $query .= "pdName LIKE '%$userSearch%'";
     // }
     // else {
     //     // display all items if search filter is empty
     //     $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product";
-        
-    //     $stmt = $con->prepare($query);
     // }
 
-    // // if statement could not execute properly
+    // // retrieving query result
+    // $result = mysqli_query($con, $query);
+
+    // //error message if result from query not found
+    // if (!$result) {
+    //     die('SQL query error: ' . mysqli_error($con));
+    // }
+
+    // NEW SECURE CODE
+    // initialising $query. $stmt, and error message variable
+    $query = "";
+    $stmt = "";
+    $message = "";
+
+    // response from db_deleteproduct.php if error deleting product
+    if (isset($_GET['error'])) {
+        $message = filter_input(INPUT_GET, 'error', FILTER_SANITIZE_STRING);
+    }
+
+    // if the user uses the search filter
+    if (isset($_POST['search-query'])) {
+        // cleaning the input from whitespace & special characters
+        $rawUserSearchTrim = trim($_POST['search-query']);
+        $sanitisedUserSearch = filter_var($rawUserSearchTrim, FILTER_SANITIZE_STRING);
+        $userSearch = "%$sanitisedUserSearch%";
+        
+
+        // database query
+        $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product WHERE ";
+        $query .= "pdName LIKE ?";
+
+        $stmt = $con->prepare($query);
+        $stmt->bind_param("s", $userSearch);
+    }
+    else {
+        // display all items if search filter is empty
+        $query = "SELECT pdID, pdName, pdPrice, pdSize, pdStockCount, pdImage FROM product";
+        
+        $stmt = $con->prepare($query);
+    }
+
+    // QUERY ZONE
+    // if statement could not execute properly
+    try {
+        if (!$stmt->execute()) {
+            $message = "Could not fetch products.";
+            error_log("Admin Products Page | Could not fetch results", $stmt->errno);
+        }
+        $result = $stmt->get_result();
+    
+    
+        // closing database connection
+        $stmt->close();
+
+    } catch (mysqli_sql_exception $e) {
+        $message = "Could not fetch products.";
+        error_log("Admin Products Page | Could not fetch results " . $e->getMessage());
+    }
     // if (!$stmt->execute()) {
     //     error_log("Admin Products Page | Could not fetch results", $stmt->errno);
     // }
@@ -106,46 +135,7 @@
             <table>
                 <!-- automatically generating the table rows along with the associated product ID -->
                 <?php
-                    if (mysqli_num_rows($result) > 0) {
-
-                        echo "<tr>";
-                        echo "    <th></th>";
-                        echo "    <th>Product Name</th>";
-                        echo "    <th>Price</th>";
-                        echo "    <th>Size</th>";
-                        echo "    <th>Stock</th>";
-                        echo "    <th></th>";
-                        echo "</tr>";
-
-                        while ($tbrow = mysqli_fetch_assoc($result)) {
-                            $pdID = $tbrow['pdID'];
-                            $pdImg = $tbrow['pdImage'];
-                            $pdName = $tbrow['pdName'];
-                            $pdPrice = $tbrow['pdPrice'];
-                            $pdSize = $tbrow['pdSize'];
-                            $pdStockCount = $tbrow['pdStockCount'];
-
-                            echo "<tr>";
-                            echo "    <td><img src='$pdImg' width='150px' height='150px'></td>";
-                            echo "    <td><p>$pdName</p></td>";
-                            echo "    <td><p>RM$pdPrice</p></td>";
-                            echo "    <td><p>$pdSize</p></td>";
-                            echo "    <td><p>$pdStockCount</p></td>";
-                            echo "    <td>";
-                            echo "        <a href='aeditproduct.php?id=$pdID'>";
-                            echo "            <button class='delete'>Edit</button>";
-                            echo "        </a>";
-                            echo "        <button class='delete-btn delete' value='$pdID'>Delete</button>";
-                            echo "    </td>";
-                            echo "</tr>";
-                        }
-                    }
-                    else {
-                        echo "<p style='margin-top: 24%; font-size: 1.5rem;'>Couldn't find the product</p>";
-                    }
-
-                    // NEW SECURE CODE
-                    // if ($result->num_rows > 0) {
+                    // if (mysqli_num_rows($result) > 0) {
 
                     //     echo "<tr>";
                     //     echo "    <th></th>";
@@ -156,43 +146,87 @@
                     //     echo "    <th></th>";
                     //     echo "</tr>";
 
-                    //     while ($tbrow = $result->fetch_assoc()) {
+                    //     while ($tbrow = mysqli_fetch_assoc($result)) {
                     //         $pdID = $tbrow['pdID'];
                     //         $pdImg = $tbrow['pdImage'];
-                    //         // $pdName = strip_tags($tbrow['pdName']);
-                    //         $pdName = htmlspecialchars($tbrow['pdName'], ENT_NOQUOTES, 'UTF-8');
-                    //         $catchHTMLentities = array('&#39;', '&#34;', '&amp;');  // catching ' and " HTML entities from pdName
-                    //         $replacementEntities = array("'", '"', '&');  // setting the corresponding quotes to replace the HTML entities with
-                    //         $bringBackQuotes = str_replace($catchHTMLentities, $replacementEntities, $pdName);  // replacing the quotes
-                    //         $sanitisedPdName = preg_replace('/\\\\/','', $bringBackQuotes);
-                    //         //ASSIGN HTMLSPECIALCHARS TO THE pdName itself, THEN MANUALLY REPLACE THE ENCODED QUOTES INTO THEIR ACTUAL FORMS
+                    //         $pdName = $tbrow['pdName'];
                     //         $pdPrice = $tbrow['pdPrice'];
                     //         $pdSize = $tbrow['pdSize'];
                     //         $pdStockCount = $tbrow['pdStockCount'];
 
                     //         echo "<tr>";
-                    //         echo "    <td><img src='" .htmlspecialchars($pdImg). "' width='150px' height='150px'></td>";
-                    //         echo "    <td><p>" .$sanitisedPdName. "</p></td>";
-                    //         echo "    <td><p>RM" .htmlspecialchars($pdPrice). "</p></td>";
-                    //         echo "    <td><p>" .htmlspecialchars($pdSize). "</p></td>";
-                    //         echo "    <td><p>" .htmlspecialchars($pdStockCount). "</p></td>";
+                    //         echo "    <td><img src='$pdImg' width='150px' height='150px'></td>";
+                    //         echo "    <td><p>$pdName</p></td>";
+                    //         echo "    <td><p>RM$pdPrice</p></td>";
+                    //         echo "    <td><p>$pdSize</p></td>";
+                    //         echo "    <td><p>$pdStockCount</p></td>";
                     //         echo "    <td>";
-                    //         echo "        <a href='aeditproduct.php?id=" .(int)$pdID. "'>";
+                    //         echo "        <a href='aeditproduct.php?id=$pdID'>";
                     //         echo "            <button class='delete'>Edit</button>";
                     //         echo "        </a>";
-                    //         echo "        <button class='delete-btn delete' value='" .(int)$pdID. "'>Delete</button>";
+                    //         echo "        <button class='delete-btn delete' value='$pdID'>Delete</button>";
                     //         echo "    </td>";
                     //         echo "</tr>";
-
-                    //         // debugging zone
-                    //         // echo "<tr>";
-                    //         // echo "  <td></td>"
-                    //         // echo "</tr>";
                     //     }
                     // }
                     // else {
                     //     echo "<p style='margin-top: 24%; font-size: 1.5rem;'>Couldn't find the product</p>";
                     // }
+
+                    // NEW SECURE CODE
+                    // error message display section
+                    if (isset($message) && $message != '') {
+                        echo "<div class='error-message'>" .$message. "</div>";
+                    }
+
+                    if ($result->num_rows > 0) {
+
+                        echo "<tr>";
+                        echo "    <th></th>";
+                        echo "    <th>Product Name</th>";
+                        echo "    <th>Price</th>";
+                        echo "    <th>Size</th>";
+                        echo "    <th>Stock</th>";
+                        echo "    <th></th>";
+                        echo "</tr>";
+
+                        while ($tbrow = $result->fetch_assoc()) {
+                            $pdID = $tbrow['pdID'];
+                            $pdImg = $tbrow['pdImage'];
+                            // $pdName = strip_tags($tbrow['pdName']);
+                            $pdName = htmlspecialchars($tbrow['pdName'], ENT_NOQUOTES, 'UTF-8');
+                            $catchHTMLentities = array('&#39;', '&#34;', '&amp;');  // catching ' and " HTML entities from pdName
+                            $replacementEntities = array("'", '"', '&');  // setting the corresponding quotes to replace the HTML entities with
+                            $bringBackQuotes = str_replace($catchHTMLentities, $replacementEntities, $pdName);  // replacing the quotes
+                            $sanitisedPdName = preg_replace('/\\\\/','', $bringBackQuotes);
+                            //ASSIGN HTMLSPECIALCHARS TO THE pdName itself, THEN MANUALLY REPLACE THE ENCODED QUOTES INTO THEIR ACTUAL FORMS
+                            $pdPrice = $tbrow['pdPrice'];
+                            $pdSize = $tbrow['pdSize'];
+                            $pdStockCount = $tbrow['pdStockCount'];
+
+                            echo "<tr>";
+                            echo "    <td><img src='" .htmlspecialchars($pdImg). "' width='150px' height='150px'></td>";
+                            echo "    <td><p>" .$sanitisedPdName. "</p></td>";
+                            echo "    <td><p>RM" .htmlspecialchars($pdPrice). "</p></td>";
+                            echo "    <td><p>" .htmlspecialchars($pdSize). "</p></td>";
+                            echo "    <td><p>" .htmlspecialchars($pdStockCount). "</p></td>";
+                            echo "    <td>";
+                            echo "        <a href='aeditproduct.php?id=" .(int)$pdID. "'>";
+                            echo "            <button class='delete'>Edit</button>";
+                            echo "        </a>";
+                            echo "        <button class='delete-btn delete' value='" .(int)$pdID. "'>Delete</button>";
+                            echo "    </td>";
+                            echo "</tr>";
+
+                            // debugging zone
+                            // echo "<tr>";
+                            // echo "  <td></td>"
+                            // echo "</tr>";
+                        }
+                    }
+                    else {
+                        echo "<p style='margin-top: 24%; font-size: 1.5rem;'>Couldn't find the product</p>";
+                    }
                 ?>
 
 

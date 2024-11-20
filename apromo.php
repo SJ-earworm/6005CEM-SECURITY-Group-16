@@ -1,4 +1,10 @@
 <?php
+    // error handling setup
+	error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
 
     require("session_handling.php");
     include("Connectdb.php");
@@ -14,19 +20,34 @@
     // $con->close();
 
     // NEW CODE
-    $query = "SELECT promoImageID, promoImage, promoTitle FROM carousel_promo";
-    $stmt = $con->prepare($query);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    // initialising variables
+    $message = "";
+    $result = "";
 
-    if ($stmt->errno) {
-        echo "<p style='margin-left: 300px'>Error fetching carousel images</p> <br/>";
-        // temporary
-        // echo $stmt->errno;
+    if (isset($_GET['error'])) {
+        $message = filter_input(INPUT_GET, 'error', FILTER_SANITIZE_STRING);
     }
 
-    // closing database connection
-    $stmt->close();
+    try {
+        $query = "SELECT promoImageID, promoImage, promoTitle FROM carousel_promo";
+        $stmt = $con->prepare($query);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if ($stmt->errno) {
+            $message = "<p style='margin-left: 300px'>Error fetching carousel images</p> <br/>";
+            error_log("Admin Promo page | " . $stmt->errno);
+            // temporary
+            // echo $stmt->errno;
+        }
+
+        // closing database connection
+        $stmt->close();
+
+    } catch (mysqli_sql_exception $e) {
+        $message = "Error fetching carousel images";
+        error_log("Admin Promo page | " . $e->getMessage());
+    }
 
 ?>
 
@@ -57,7 +78,14 @@
             <table>
                 <!-- automatically generating the table rows along with the associated product ID -->
                 <?php
+                    // error message display section
+                    if (isset($message) && $message != '') {
+                        echo "<div class='error-message' style='transform: translate(-5px, 0);'>$message</div>";
+                    }
+                    
                     if ($result->num_rows > 0) {
+
+                        echo "<button id='freshPromo' class='fresh-promo-upload-btn'>Upload New</button>";  
 
                         echo "<tr>";
                         echo "    <th>Image</th>";
@@ -79,12 +107,12 @@
                             echo "</tr>";
                         }
 
-                        echo "<button id='freshPromo' class='fresh-promo-upload-btn'>Upload New</button>";
                     }
                     else {
-                        echo "<p style='margin-top: 24%; font-size: 1.5rem;'>No promo material yet</p>";
                         echo "<button id='freshPromo' class='fresh-promo-upload-btn'>Upload New</button>";
+                        echo "<p style='margin-top: 24%; font-size: 1.5rem;'>No promo material yet</p>";
                     }
+                    
                 ?>
 
 

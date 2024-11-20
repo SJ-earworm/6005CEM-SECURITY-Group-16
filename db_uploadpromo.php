@@ -1,4 +1,11 @@
 <?php
+    // error handling setup
+    error_reporting(E_ALL | E_STRICT);
+    ini_set('display_startup_errors', 'Off');   // syntax errors considered startup errors cos they run before the execution of the page render
+    ini_set('display_errors', 'Off');
+    ini_set('log_errors', 'On');
+    ini_set('error_log', 'C:/Applications/XAMPP/apache/logs/SPF/SPF-error.log');
+
     require("Connectdb.php");
 
     if ($_SERVER['REQUEST_METHOD']=="POST") {
@@ -72,39 +79,52 @@
         $extension = array('jpeg', 'jpg', 'png');
     
     
-        if (in_array($file_extension, $extension)) {
-            // NEW ADDITION
-            // CHECKING FILE CONTENT, COMPATIBLE OR ACCEPTED FILE EXTENSIONS ANOT
-            // checking & verifying file MIME type. if strpos returns false, means 'image/' is not in the MIME (e.g. image/jpeg, image/png, etc.),
-            // meaning that it could be another file type
-            $imageMIME = mime_content_type($imageFileTemp);
-            if (strpos($imageMIME, 'image/') === false) {
-                echo "Invalid file type! <br/>";
-                die();
-            }
+        try {
+            if (in_array($file_extension, $extension)) {
+                // NEW ADDITION
+                // CHECKING FILE CONTENT, COMPATIBLE OR ACCEPTED FILE EXTENSIONS ANOT
+                // checking & verifying file MIME type. if strpos returns false, means 'image/' is not in the MIME (e.g. image/jpeg, image/png, etc.),
+                // meaning that it could be another file type
+                $imageMIME = mime_content_type($imageFileTemp);
+                if (strpos($imageMIME, 'image/') === false) {
+                    echo "Invalid file type! <br/>";
+                    die();
+                }
+    
+                $uploadImage = 'images/' . $sanitised_filename . '.' . $file_extension;  // using sanitised file name as the directory name
+                move_uploaded_file($imageFileTemp, $uploadImage);  // moving the image to the sanitised directory
+        
+                $query = "INSERT INTO carousel_promo(promoImage, promoTitle) VALUES (?, ?)";
+                $stmt = $con->prepare($query);
+                $stmt->bind_param("ss", $uploadImage, $promoTitle);
+                $stmt->execute();
+        
+                if ($stmt->affected_rows > 0) {
+                    echo "Promo image added successfully <br/>";
+                    header("Location: apromo.php");
+                    die;
+                }
+                else {
+                    echo "Error adding image. <br/>";
+                    // temporary
+                    // echo $stmt->errno;
+                }
 
-            $uploadImage = 'images/' . $sanitised_filename . '.' . $file_extension;  // using sanitised file name as the directory name
-            move_uploaded_file($imageFileTemp, $uploadImage);  // moving the image to the sanitised directory
-    
-            $query = "INSERT INTO carousel_promo(promoImage, promoTitle) VALUES (?, ?)";
-            $stmt = $con->prepare($query);
-            $stmt->bind_param("ss", $uploadImage, $promoTitle);
-            $stmt->execute();
-    
-            if ($stmt->affected_rows > 0) {
-                echo "Promo image added successfully <br/>";
-                header("Location: apromo.php");
-                die;
-            }
-            else {
-                echo "Error adding image. <br/>";
+                $stmt->close();
+
+            } else {
+                // echo "Invalid file type!";
                 // temporary
                 // echo $stmt->errno;
+                $jsonmessage = "Invalid file type!";
+                header("Location: apromo.php?error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
             }
-        } else {
-            echo "Invalid file type!";
-            // temporary
-            // echo $stmt->errno;
+
+        } catch (mysqli_sql_exception $e) {
+            $jsonmessage = "Could not upload promo banner. Please try again later.";
+            error_log("Upload Promo page | Error uploading promo banner: " . $e->getMessage());
+            header("Location: apromo.php?error=" .urlencode($jsonmessage));  // urlencode sanitises the url, characters will immediately be encoded
+            die;
         }
     }
 ?>
